@@ -24,7 +24,7 @@ class Isucon5::WebApp < Sinatra::Base
   set :erb, escape_html: true
   set :public_folder, File.expand_path('../../static', __FILE__)
   #set :sessions, true
-  set :session_secret, ENV['ISUCON5_SESSION_SECRET'] || 'beermoris'
+  set :session_secret, nil
   set :protection, true
 
   #use Rack::Lineprof, profile: __FILE__
