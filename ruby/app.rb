@@ -1,4 +1,3 @@
-# coding: utf-8
 require './lib/cache.rb'
 require 'sinatra'
 require 'mysql2'
@@ -173,13 +172,13 @@ SQL
         cache_key = "#{DAIARY_ENTRY_CACHE_PREFIX}#{owner[:id]}"
 
         # 友達むけキャッシュ
-        #cache_key_p = "#{cache_key}_private"
-        #query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY id DESC LIMIT 20'
-        #entries = db.xquery(query, owner[:id])
-        #  .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
-        #mark_footprint(owner[:id])
-        #res = erb(:entries, locals: { owner: owner, entries: entries, myself: false})
-        #dc.set(cache_key_p, res)
+        cache_key_p = "#{cache_key}_private"
+        query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY id DESC LIMIT 20'
+        entries = db.xquery(query, owner[:id])
+          .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
+        mark_footprint(owner[:id])
+        res = erb(:entries, locals: { owner: owner, entries: entries, myself: false})
+        dc.set(cache_key_p, res)
 
         # 閲覧者向けキャッシュ
         cache_key_p = "#{cache_key}_public"
