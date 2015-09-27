@@ -157,9 +157,28 @@ SQL
       "friend_ids_for_#{user_id}"
     end
 
+    def friend_ids_sadd(user_id, friend_id)
+      r = friend_ids_smember(user_Id)
+      rr = (r ? r : [])
+      rrr = rr.push(friend_id.to_i).uniq
+      friend_ids_smember_sadd(user_id, rrr)
+    end
+
+    def friend_ids_smember(user_id)
+      key = key_for(user_id)
+      res = dc.get(key)
+      res ? res.split(',').map(&:to_i) : nil
+    end
+
+    def friend_ids_smember_sadd(user_id, membs)
+      dc.set(key_for(user_id), membs.join(',') )
+    end
+
     def friend_ids_for(user_id)
-      result = dc.smembers(key_for(user_id))
-      return result.map(&:to_i) if !result.nil? && !result.empty?
+      result = friend_ids_smember(user_id)
+      # result = dc.smembers(key_for(user_id))
+      # return result.map(&:to_i) if !result.nil? && !result.empty?
+      return result if result
 
       raw = db.query("SELECT one, another FROM relations WHERE one = #{user_id} OR another = #{user_id}").map do |result|
         if result[:one] == user_id
@@ -169,7 +188,8 @@ SQL
         end
       end.uniq
 
-      dc.sadd(key_for(user_id), raw.map(&:to_s))
+      # dc.sadd(key_for(user_id), raw.map(&:to_s))
+      friend_ids_smember_sadd(user_id, raw)
       raw
     end
 
@@ -480,8 +500,10 @@ SQL
       end
       one, another = [current_user[:id], user[:id]].sort
       db.xquery('INSERT INTO relations (one, another) VALUES (?,?)', one, another)
-      dc.sadd(key_for(one), another)
-      dc.sadd(key_for(another), one)
+      # dc.sadd(key_for(one), another)
+      friend_ids_sadd(one, another)
+      # dc.sadd(key_for(another), one)
+      friend_ids_sadd(another, one)
       redirect '/friends'
     end
   end
@@ -502,8 +524,8 @@ SQL
 
     warmup_caches!
 
-    keys = db.xquery('SELECT id from users').map { |user| key_for(user[:id]) }
-    dc.del(keys)
+    # keys = db.xquery('SELECT id from users').map { |user| key_for(user[:id]) }
+    # dc.del(keys)
 
     end_time = Time.now
     return "success (#{end_time - start_time}sec)"

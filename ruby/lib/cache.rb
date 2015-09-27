@@ -1,9 +1,14 @@
 require "redis"
+require 'dalli'
 
 class Cache
   class << self
     def client
-      @client ||= make_client
+      @client ||= make_dalli_client
+    end
+
+    def make_dalli_client
+      Dalli::Client.new('127.0.0.1:11211')
     end
 
     def make_client
