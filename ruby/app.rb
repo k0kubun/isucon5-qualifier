@@ -125,6 +125,16 @@ SQL
       records
     end
 
+    def eager_load_entry(comments)
+      ids = comments.map { |c| c[:entry_id] }.compact.uniq
+      db.xquery("SELECT * FROM entries WHERE id IN (#{ids.join(',')})").each do |entry|
+        comments.select { |c| c[:entry_id] == entry[:id] }.each do |comment|
+          comment[:entry] = entry
+        end
+      end
+      comments
+    end
+
     def user_from_account(account_name)
       user = db.xquery('SELECT * FROM users WHERE account_name = ? LIMIT 1', account_name).first
       raise Isucon5::ContentNotFound unless user
@@ -276,11 +286,11 @@ SQL
     end
 
     comments_of_friends = []
-    db.query("SELECT * FROM comments WHERE user_id IN (#{friend_ids.join(',')}) ORDER BY id DESC LIMIT 10").each do |comment|
-      entry = db.xquery('SELECT * FROM entries WHERE id = ? LIMIT 1', comment[:entry_id]).first
+    comments_10 = db.query("SELECT * FROM comments WHERE user_id IN (#{friend_ids.join(',')}) ORDER BY id DESC LIMIT 10")
+    eager_load_entry(comments_10).each do |comment|
+      entry = comment[:entry]
       entry[:is_private] = (entry[:private] == 1)
       next if entry[:is_private] && !permitted?(entry[:user_id])
-      comment[:entry] = entry
       comments_of_friends << comment
     end
 
