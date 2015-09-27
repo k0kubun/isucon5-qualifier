@@ -229,6 +229,7 @@ SQL
       entry = db.xquery('SELECT * FROM entries WHERE id = ? LIMIT 1', comment[:entry_id]).first
       entry[:is_private] = (entry[:private] == 1)
       next if entry[:is_private] && !permitted?(entry[:user_id])
+      comment[:entry] = entry
       comments_of_friends << comment
     end
 
