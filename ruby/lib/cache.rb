@@ -7,7 +7,7 @@ class Cache
     end
 
     def make_client
-      if false #File.exist?("/tmp/redis.sock")
+      if File.exist?("/tmp/redis.sock")
         Redis.new(
           path: "/tmp/redis.sock",
           db: 'isucon5q'
