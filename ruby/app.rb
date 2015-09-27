@@ -75,6 +75,7 @@ SELECT u.id AS id, u.account_name AS account_name, u.nick_name AS nick_name, u.e
 FROM users u
 JOIN salts s ON u.id = s.user_id
 WHERE u.email = ? AND u.passhash = SHA2(CONCAT(?, s.salt), 512)
+LIMIT 1
 SQL
       result = db.xquery(query, email, password).first
       unless result
@@ -105,13 +106,13 @@ SQL
     end
 
     def get_user(user_id)
-      user = db.xquery('SELECT * FROM users WHERE id = ?', user_id).first
+      user = db.xquery('SELECT * FROM users WHERE id = ? LIMIT 1', user_id).first
       raise Isucon5::ContentNotFound unless user
       user
     end
 
     def user_from_account(account_name)
-      user = db.xquery('SELECT * FROM users WHERE account_name = ?', account_name).first
+      user = db.xquery('SELECT * FROM users WHERE account_name = ? LIMIT 1', account_name).first
       raise Isucon5::ContentNotFound unless user
       user
     end
@@ -199,7 +200,7 @@ SQL
   get '/' do
     authenticated!
 
-    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ?', current_user[:id]).first
+    profile = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
 
     entries_query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY id LIMIT 5'
     entries = db.xquery(entries_query, current_user[:id])
@@ -225,7 +226,7 @@ SQL
 
     comments_of_friends = []
     db.query("SELECT * FROM comments WHERE user_id IN (#{friend_ids.join(',')}) ORDER BY id DESC LIMIT 10").each do |comment|
-      entry = db.xquery('SELECT * FROM entries WHERE id = ?', comment[:entry_id]).first
+      entry = db.xquery('SELECT * FROM entries WHERE id = ? LIMIT 1', comment[:entry_id]).first
       entry[:is_private] = (entry[:private] == 1)
       next if entry[:is_private] && !permitted?(entry[:user_id])
       comments_of_friends << comment
@@ -264,7 +265,7 @@ SQL
   get '/profile/:account_name' do
     authenticated!
     owner = user_from_account(params['account_name'])
-    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ?', owner[:id]).first
+    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', owner[:id]).first
     prof = {} unless prof
     query = if permitted?(owner[:id])
               'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
@@ -284,7 +285,7 @@ SQL
     end
     args = [params['first_name'], params['last_name'], params['sex'], params['birthday'], params['pref']]
 
-    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ?', current_user[:id]).first
+    prof = db.xquery('SELECT * FROM profiles WHERE user_id = ? LIMIT 1', current_user[:id]).first
     if prof
       query = <<SQL
 UPDATE profiles
@@ -340,7 +341,7 @@ SQL
 
   get '/diary/entry/:entry_id' do
     authenticated!
-    entry = db.xquery('SELECT * FROM entries WHERE id = ?', params['entry_id']).first
+    entry = db.xquery('SELECT * FROM entries WHERE id = ? LIMIT 1', params['entry_id']).first
     raise Isucon5::ContentNotFound unless entry
     entry[:title], entry[:content] = entry[:body].split(/\n/, 2)
     entry[:is_private] = (entry[:private] == 1)
@@ -365,7 +366,7 @@ SQL
 
   post '/diary/comment/:entry_id' do
     authenticated!
-    entry = db.xquery('SELECT * FROM entries WHERE id = ?', params['entry_id']).first
+    entry = db.xquery('SELECT * FROM entries WHERE id = ? LIMIT 1', params['entry_id']).first
     unless entry
       raise Isucon5::ContentNotFound
     end
