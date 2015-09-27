@@ -116,6 +116,16 @@ SQL
       is_friend?(user_from_account(account_name)[:id])
     end
 
+    def friend_ids_for(user_id)
+      db.query("SELECT one, another FROM relations WHERE one = #{user_id} OR another = #{user_id}").map do |result|
+        if result['one'] == user_id
+          result['another']
+        else
+          result['one']
+        end
+      end.uniq
+    end
+
     def permitted?(another_id)
       another_id == current_user[:id] || is_friend?(another_id)
     end
@@ -186,9 +196,12 @@ LIMIT 10
 SQL
     comments_for_me = db.xquery(comments_for_me_query, current_user[:id])
 
+    friend_ids = friend_ids_for(session[:user_id])
+
     entries_of_friends = []
     db.query('SELECT * FROM entries ORDER BY id DESC LIMIT 1000').each do |entry|
-      next unless is_friend?(entry[:user_id])
+      # next unless is_friend?(entry[:user_id])
+      next unless friend_ids.include?(entry[:user_id])
       entry[:title] = entry[:body].split(/\n/).first
       entries_of_friends << entry
       break if entries_of_friends.size >= 10
@@ -196,7 +209,8 @@ SQL
 
     comments_of_friends = []
     db.query('SELECT * FROM comments ORDER BY id DESC LIMIT 1000').each do |comment|
-      next unless is_friend?(comment[:user_id])
+      # next unless is_friend?(comment[:user_id])
+      next unless friend_ids.include?(comment[:user_id])
       entry = db.xquery('SELECT * FROM entries WHERE id = ?', comment[:entry_id]).first
       entry[:is_private] = (entry[:private] == 1)
       next if entry[:is_private] && !permitted?(entry[:user_id])
