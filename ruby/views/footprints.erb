@@ -1,8 +1,8 @@
 <h2>あしあとリスト</h2>
 <div class="row panel panel-primary" id="footprints">
   <ul class="list-group">
-    <% footprints.each do |fp| %>
-    <% owner = get_user(fp[:owner_id]) %>
+    <% eager_load_get_user(footprints, :owner_id).each do |fp| %>
+    <% owner = fp[:eager_loaded_user] %>
     <li class="list-group-item footprints-footprint"><%= fp[:updated] %>: <a href="/profile/<%= owner[:account_name] %>"><%= owner[:nick_name] %>さん</a>
     <% end %>
   </ul>
