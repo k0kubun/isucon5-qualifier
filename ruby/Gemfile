@@ -2,11 +2,13 @@ source "https://rubygems.org"
 
 
 gem "sinatra"
+gem 'sinatra-contrib'
 gem "mysql2"
 gem "mysql2-cs-bind"
 gem "erubis"
 gem "unicorn"
 gem 'newrelic_rpm' # FIXME: this MUST be removed before submit
 gem 'rack-lineprof' # FIXME: this MUST be removed before submit
+gem 'redis'
 
 gem 'pry'

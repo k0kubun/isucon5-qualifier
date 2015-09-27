@@ -1,11 +1,15 @@
-require 'sinatra/base'
+require './lib/cache.rb'
+require 'sinatra'
 require 'mysql2'
 require 'mysql2-cs-bind'
 require 'tilt/erubis'
 require 'erubis'
+require 'sinatra/reloader' if development?
 
 # FIXME: remove
 require 'rack-lineprof'
+
+DAIARY_ENTRY_CACHE_PREFIX = 'd_e_'
 
 module Isucon5
   class AuthenticationError < StandardError; end
@@ -20,6 +24,10 @@ module Isucon5
 end
 
 class Isucon5::WebApp < Sinatra::Base
+  configure :development do
+    register Sinatra::Reloader
+  end
+
   use Rack::Session::Cookie
   set :erb, escape_html: true
   set :public_folder, File.expand_path('../../static', __FILE__)
@@ -40,6 +48,10 @@ class Isucon5::WebApp < Sinatra::Base
           database: ENV['ISUCON5_DB_NAME'] || 'isucon5q',
         },
       }
+    end
+
+    def dc
+      Cache.client
     end
 
     def db
@@ -130,6 +142,12 @@ SQL
       another_id == current_user[:id] || is_friend?(another_id)
     end
 
+    def purge_diary_cache(user_id)
+      # p 'PURGE'
+      k = "#{DAIARY_ENTRY_CACHE_PREFIX}#{user_id}"
+      %w(_owner _private _public).map{|e| dc.del("#{k}#{e}") }
+    end
+
     def mark_footprint(user_id)
       if user_id != current_user[:id]
         query = 'INSERT INTO footprints (user_id,owner_id) VALUES (?,?)'
@@ -142,7 +160,8 @@ SQL
       北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県
       石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県
       岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県
-    )
+    ).freeze
+
     def prefectures
       PREFS
     end
@@ -292,15 +311,37 @@ SQL
   get '/diary/entries/:account_name' do
     authenticated!
     owner = user_from_account(params['account_name'])
-    query = if permitted?(owner[:id])
-              'SELECT * FROM entries WHERE user_id = ? ORDER BY id DESC LIMIT 20'
-            else
-              'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY id DESC LIMIT 20'
-            end
+
+    cache_key = "#{DAIARY_ENTRY_CACHE_PREFIX}#{owner[:id]}"
+
+    if permitted?(owner[:id])
+      # オーナーまたは友達の処理
+      query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY id DESC LIMIT 20'
+      if owner[:id] == current_user[:id]
+        # オーナーの処理
+        cache_key_p = "#{cache_key}_owner"
+      else
+        # 友達の処理
+        cache_key_p = "#{cache_key}_private"
+      end
+    else
+      # 閲覧者の処理
+      cache_key_p = "#{cache_key}_public"
+      query = 'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY id DESC LIMIT 20'
+    end
+
+    res = dc.get(cache_key_p)
+    if res
+      return res
+    end
+
     entries = db.xquery(query, owner[:id])
       .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
     mark_footprint(owner[:id])
-    erb :entries, locals: { owner: owner, entries: entries, myself: (current_user[:id] == owner[:id]) }
+    res = erb(:entries, locals: { owner: owner, entries: entries, myself: (current_user[:id] == owner[:id])})
+    dc.set(cache_key_p, res)
+
+    return res
   end
 
   get '/diary/entry/:entry_id' do
@@ -323,6 +364,8 @@ SQL
     query = 'INSERT INTO entries (user_id, private, body) VALUES (?,?,?)'
     body = (params['title'] || "タイトルなし") + "\n" + params['content']
     db.xquery(query, current_user[:id], (params['private'] ? '1' : '0'), body)
+
+    purge_diary_cache(current_user[:id])
     redirect "/diary/entries/#{current_user[:account_name]}"
   end
 
@@ -338,6 +381,8 @@ SQL
     end
     query = 'INSERT INTO comments (entry_id, user_id, comment) VALUES (?,?,?)'
     db.xquery(query, entry[:id], current_user[:id], params['comment'])
+
+    purge_diary_cache(entry[:user_id])
     redirect "/diary/entry/#{entry[:id]}"
   end
 
