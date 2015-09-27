@@ -4,8 +4,7 @@ class Cache
   class << self
     def client
       @client ||= Redis.new(
-        host: "127.0.0.1",
-        port: 6379,
+        path: "/tmp/redis.sock",
         db: 'isucon5q'
       )
     end
