@@ -166,6 +166,34 @@ SQL
     def prefectures
       PREFS
     end
+
+    def warmup_diaries_caches!
+      db.xquery('SELECT id from users').each do |owner|
+        cache_key = "#{DAIARY_ENTRY_CACHE_PREFIX}#{owner[:id]}"
+
+        # 友達むけキャッシュ
+        cache_key_p = "#{cache_key}_private"
+        query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY id DESC LIMIT 20'
+        entries = db.xquery(query, owner[:id])
+          .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
+        mark_footprint(owner[:id])
+        res = erb(:entries, locals: { owner: owner, entries: entries, myself: false})
+        dc.set(cache_key_p, res)
+
+        # 閲覧者向けキャッシュ
+        cache_key_p = "#{cache_key}_public"
+        query = 'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY id DESC LIMIT 20'
+        entries = db.xquery(query, owner[:id])
+          .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
+        mark_footprint(owner[:id])
+        res = erb(:entries, locals: { owner: owner, entries: entries, myself: false})
+        dc.set(cache_key_p, res)
+      end
+    end
+
+    def warmup_caches!
+      warmup_diaries_caches!
+    end
   end
 
   error Isucon5::AuthenticationError do
@@ -428,11 +456,15 @@ SQL
     db.query("DELETE FROM entries WHERE id > 500000")
     db.query("DELETE FROM comments WHERE id > 1500000")
     #alter table footprints add index idx_footprints(`user_id`, `owner_id`, `created_at`);
+    #db.query("alter table footprints add index idx_footprints(`user_id`, `owner_id`, `created_at`)")
     #alter table relations add index idx_one(one);
     #alter table relations add index idx_another(another);
     #alter table comments add index idx_entries_user_id(`user_id`);
     #alter table entries drop index user_id;
     #alter table entries add index idx_entries_user_id(`user_id`);
+
+    warmup_caches!
+
     end_time = Time.now
     return "success (#{end_time - start_time}sec)"
   end
