@@ -432,8 +432,11 @@ SQL
     db.query("DELETE FROM footprints WHERE id > 500000")
     db.query("DELETE FROM entries WHERE id > 500000")
     db.query("DELETE FROM comments WHERE id > 1500000")
-    #db.query("alter table footprints add index idx_footprints(`user_id`, `owner_id`, `created_at`)")
+    #alter table footprints add index idx_footprints(`user_id`, `owner_id`, `created_at`);
     #alter table relations add index idx_one(one);
     #alter table relations add index idx_another(another);
+    #alter table comments add index idx_entries_user_id(`user_id`);
+    #alter table entries drop index user_id;
+    #alter table entries add index idx_entries_user_id(`user_id`);
   end
 end
