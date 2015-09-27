@@ -118,10 +118,10 @@ SQL
 
     def friend_ids_for(user_id)
       db.query("SELECT one, another FROM relations WHERE one = #{user_id} OR another = #{user_id}").map do |result|
-        if result['one'] == user_id
-          result['another']
+        if result[:one] == user_id
+          result[:another]
         else
-          result['one']
+          result[:one]
         end
       end.uniq
     end
