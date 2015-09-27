@@ -127,7 +127,7 @@ SQL
 
     def eager_load_entry(comments)
       ids = comments.map { |c| c[:entry_id] }.compact.uniq
-      db.xquery("SELECT * FROM entries WHERE id IN (#{ids.join(',')})").each do |entry|
+      eager_load_get_user(db.xquery("SELECT * FROM entries WHERE id IN (#{ids.join(',')})"), :user_id).each do |entry|
         comments.select { |c| c[:entry_id] == entry[:id] }.each do |comment|
           comment[:entry] = entry
         end
