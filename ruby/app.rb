@@ -450,6 +450,7 @@ SQL
   end
 
   get '/initialize' do
+    start_time = Time.now
     db.query("DELETE FROM relations WHERE id > 500000")
     db.query("DELETE FROM footprints WHERE id > 500000")
     db.query("DELETE FROM entries WHERE id > 500000")
@@ -463,6 +464,8 @@ SQL
     #alter table entries add index idx_entries_user_id(`user_id`);
 
     warmup_caches!
-    return 'success'
+
+    end_time = Time.now
+    return "success (#{end_time - start_time}sec)"
   end
 end
