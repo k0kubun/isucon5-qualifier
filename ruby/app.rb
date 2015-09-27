@@ -51,7 +51,10 @@ class Isucon5::WebApp < Sinatra::Base
     end
 
     def dc
-      Cache.client
+      return Thread.current[:redis_client] if Thread.current[:redis_client]
+      cl = Cache.make_client
+      Thread.current[:redis_client] = cl
+      cl
     end
 
     def db
