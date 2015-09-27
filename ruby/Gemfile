@@ -8,3 +8,5 @@ gem "erubis"
 gem "unicorn"
 gem 'newrelic_rpm' # FIXME: this MUST be removed before submit
 gem 'rack-lineprof' # FIXME: this MUST be removed before submit
+
+gem 'pry'
