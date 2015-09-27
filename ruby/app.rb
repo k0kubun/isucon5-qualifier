@@ -35,7 +35,8 @@ class Isucon5::WebApp < Sinatra::Base
   set :session_secret, nil
   set :protection, true
 
-  #use Rack::Lineprof, profile: __FILE__
+  # !!!!!!!!!!!!!!!!!!!!!
+  use Rack::Lineprof, profile: __FILE__
 
   helpers do
     def config
