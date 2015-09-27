@@ -187,7 +187,8 @@ SQL
     comments_for_me = db.xquery(comments_for_me_query, current_user[:id])
 
     entries_of_friends = []
-    db.query('SELECT * FROM entries ORDER BY id DESC LIMIT 1000').each do |entry|
+    entries_1000 = db.query('SELECT * FROM entries ORDER BY id DESC LIMIT 1000').to_a
+    entries_1000.each do |entry|
       next unless is_friend?(entry[:user_id])
       entry[:title] = entry[:body].split(/\n/).first
       entries_of_friends << entry
@@ -195,7 +196,8 @@ SQL
     end
 
     comments_of_friends = []
-    db.query('SELECT * FROM comments ORDER BY id DESC LIMIT 1000').each do |comment|
+    comments_1000 = db.query('SELECT * FROM comments ORDER BY id DESC LIMIT 1000').to_a
+    comments_1000.each do |comment|
       next unless is_friend?(comment[:user_id])
       entry = db.xquery('SELECT * FROM entries WHERE id = ?', comment[:entry_id]).first
       entry[:is_private] = (entry[:private] == 1)
