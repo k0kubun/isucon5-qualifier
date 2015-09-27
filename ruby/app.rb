@@ -27,7 +27,7 @@ class Isucon5::WebApp < Sinatra::Base
   set :session_secret, ENV['ISUCON5_SESSION_SECRET'] || 'beermoris'
   set :protection, true
 
-  use Rack::Lineprof, profile: __FILE__
+  #use Rack::Lineprof, profile: __FILE__
 
   helpers do
     def config
