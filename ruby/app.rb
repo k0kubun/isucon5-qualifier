@@ -143,14 +143,24 @@ SQL
       is_friend?(user_from_account(account_name)[:id])
     end
 
+    def key_for(user_id)
+      "friend_ids_for_#{user_id}"
+    end
+
     def friend_ids_for(user_id)
-      db.query("SELECT one, another FROM relations WHERE one = #{user_id} OR another = #{user_id}").map do |result|
+      result = dc.smembers(key_for(user_id))
+      return result.map(&:to_i) if result
+
+      raw = db.query("SELECT one, another FROM relations WHERE one = #{user_id} OR another = #{user_id}").map do |result|
         if result[:one] == user_id
           result[:another]
         else
           result[:one]
         end
       end.uniq
+
+      dc.sadd(key_for(user_id), raw.map(&:to_s))
+      raw
     end
 
     def permitted?(another_id)
@@ -459,6 +469,8 @@ SQL
       end
       one, another = [current_user[:id], user[:id]].sort
       db.xquery('INSERT INTO relations (one, another) VALUES (?,?)', one, another)
+      dc.sadd(key_for(one), another)
+      dc.sadd(key_for(another), one)
       redirect '/friends'
     end
   end
@@ -478,6 +490,9 @@ SQL
     #alter table entries add index idx_entries_user_id(`user_id`);
 
     warmup_caches!
+
+    keys = db.xquery('SELECT id from users').map { |user| key_for(user[:id]) }
+    dc.del(keys)
 
     end_time = Time.now
     return "success (#{end_time - start_time}sec)"
