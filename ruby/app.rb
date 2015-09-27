@@ -172,7 +172,7 @@ SQL
 
     profile = db.xquery('SELECT * FROM profiles WHERE user_id = ?', current_user[:id]).first
 
-    entries_query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at LIMIT 5'
+    entries_query = 'SELECT * FROM entries WHERE user_id = ? ORDER BY id LIMIT 5'
     entries = db.xquery(entries_query, current_user[:id])
       .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
 
