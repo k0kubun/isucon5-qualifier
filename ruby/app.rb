@@ -443,7 +443,9 @@ SQL
       key = (rel[:one] == current_user[:id] ? :another : :one)
       friends[rel[key]] ||= rel[:created_at]
     end
-    list = friends.map{|user_id, created_at| [user_id, created_at]}
+    list = friends.map do |user_id, created_at|
+      { user_id: user_id, created_at: created_at }
+    end
     erb :friends, locals: { friends: list }
   end
 
