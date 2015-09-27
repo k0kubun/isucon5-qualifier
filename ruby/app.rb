@@ -181,13 +181,13 @@ SELECT c.id AS id, c.entry_id AS entry_id, c.user_id AS user_id, c.comment AS co
 FROM comments c
 JOIN entries e ON c.entry_id = e.id
 WHERE e.user_id = ?
-ORDER BY c.created_at DESC
+ORDER BY c.id DESC
 LIMIT 10
 SQL
     comments_for_me = db.xquery(comments_for_me_query, current_user[:id])
 
     entries_of_friends = []
-    db.query('SELECT * FROM entries ORDER BY created_at DESC LIMIT 1000').each do |entry|
+    db.query('SELECT * FROM entries ORDER BY id DESC LIMIT 1000').each do |entry|
       next unless is_friend?(entry[:user_id])
       entry[:title] = entry[:body].split(/\n/).first
       entries_of_friends << entry
@@ -195,7 +195,7 @@ SQL
     end
 
     comments_of_friends = []
-    db.query('SELECT * FROM comments ORDER BY created_at DESC LIMIT 1000').each do |comment|
+    db.query('SELECT * FROM comments ORDER BY id DESC LIMIT 1000').each do |comment|
       next unless is_friend?(comment[:user_id])
       entry = db.xquery('SELECT * FROM entries WHERE id = ?', comment[:entry_id]).first
       entry[:is_private] = (entry[:private] == 1)
@@ -279,9 +279,9 @@ SQL
     authenticated!
     owner = user_from_account(params['account_name'])
     query = if permitted?(owner[:id])
-              'SELECT * FROM entries WHERE user_id = ? ORDER BY created_at DESC LIMIT 20'
+              'SELECT * FROM entries WHERE user_id = ? ORDER BY id DESC LIMIT 20'
             else
-              'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY created_at DESC LIMIT 20'
+              'SELECT * FROM entries WHERE user_id = ? AND private=0 ORDER BY id DESC LIMIT 20'
             end
     entries = db.xquery(query, owner[:id])
       .map{ |entry| entry[:is_private] = (entry[:private] == 1); entry[:title], entry[:content] = entry[:body].split(/\n/, 2); entry }
@@ -343,7 +343,7 @@ SQL
 
   get '/friends' do
     authenticated!
-    query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY created_at DESC'
+    query = 'SELECT * FROM relations WHERE one = ? OR another = ? ORDER BY id DESC'
     friends = {}
     db.xquery(query, current_user[:id], current_user[:id]).each do |rel|
       key = (rel[:one] == current_user[:id] ? :another : :one)
