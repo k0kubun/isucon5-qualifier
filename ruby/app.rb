@@ -4,6 +4,9 @@ require 'mysql2-cs-bind'
 require 'tilt/erubis'
 require 'erubis'
 
+# FIXME: remove
+require 'rack-lineprof'
+
 module Isucon5
   class AuthenticationError < StandardError; end
   class PermissionDenied < StandardError; end
@@ -23,6 +26,8 @@ class Isucon5::WebApp < Sinatra::Base
   #set :sessions, true
   set :session_secret, ENV['ISUCON5_SESSION_SECRET'] || 'beermoris'
   set :protection, true
+
+  use Rack::Lineprof, profile: __FILE__
 
   helpers do
     def config
@@ -364,5 +369,6 @@ SQL
     db.query("DELETE FROM footprints WHERE id > 500000")
     db.query("DELETE FROM entries WHERE id > 500000")
     db.query("DELETE FROM comments WHERE id > 1500000")
+    #db.query("")
   end
 end
