@@ -111,6 +111,16 @@ SQL
       user
     end
 
+    def eager_load_get_user(records, key)
+      user_ids = records.map { |r| r[key] }
+      db.xquery("SELECT * FROM users WHERE id IN (#{user_ids.join(',')})").each do |user|
+        records.select { |r| r[key] == user[:id] }.each do |record|
+          record[:eager_loaded_user] = user
+        end
+      end
+      records
+    end
+
     def user_from_account(account_name)
       user = db.xquery('SELECT * FROM users WHERE account_name = ? LIMIT 1', account_name).first
       raise Isucon5::ContentNotFound unless user

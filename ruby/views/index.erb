@@ -29,8 +29,8 @@
     <div><a href="/footprints">あなたのページへの足あと</a></div>
     <div id="footprints">
       <ul class="list-group">
-        <% footprints.each do |fp| %>
-        <% owner = get_user(fp[:owner_id]) %>
+        <% eager_load_get_user(footprints, :owner_id).each do |fp| %>
+        <% owner = fp[:eager_loaded_user] %>
         <li class="list-group-item footprints-footprint"><%= fp[:updated] %>: <a href="/profile/<%= owner[:account_name] %>"><%= owner[:nick_name] %>さん</a>
         <% end %>
       </ul>
@@ -42,10 +42,10 @@
 <div class="col-md-4">
   <div>あなたへのコメント</div>
   <div id="comments">
-    <% comments_for_me.each do |comment| %>
+    <% eager_load_get_user(comments_for_me, :user_id).each do |comment| %>
     <div class="comments-comment">
       <ul class="list-group">
-        <% comment_user = get_user(comment[:user_id]) %>
+        <% comment_user = comment[:eager_loaded_user] %>
         <li class="list-group-item comment-owner"><a href="/profile/<%= comment_user[:account_name] %>"><%= comment_user[:nick_name] %>さん</a>:
         <li class="list-group-item comment-comment"><%= comment[:comment].size > 30 ? comment[:comment][0...27] + '...' : comment[:comment] %>
         <li class="list-group-item comment-created-at">投稿時刻:<%= comment[:created_at] %>
@@ -58,10 +58,10 @@
 <div class="col-md-4">
   <div>あなたの友だちの日記エントリ</div>
   <div id="friend-entries">
-    <% entries_of_friends.each do |entry| %>
+    <% eager_load_get_user(entries_of_friends, :user_id).each do |entry| %>
     <div class="friend-entry">
       <ul class="list-group">
-        <% entry_owner = get_user(entry[:user_id]) %>
+        <% entry_owner = entry[:eager_loaded_user] %>
         <li class="list-group-item entry-owner"><a href="/diary/entries/<%= entry_owner[:account_name] %>"><%= entry_owner[:nick_name] %>さん</a>:
         <li class="list-group-item entry-title"><a href="/diary/entry/<%= entry[:id] %>"><%= entry[:title] %></a>
         <li class="list-group-item entry-created-at">投稿時刻:<%= entry[:created_at] %>
@@ -74,10 +74,10 @@
 <div class="col-md-4">
   <div>あなたの友だちのコメント</div>
   <div id="friend-comments">
-    <% comments_of_friends.each do |comment| %>
+    <% eager_load_get_user(comments_of_friends, :user_id).each do |comment| %>
     <div class="friend-comment">
       <ul class="list-group">
-        <% comment_owner = get_user(comment[:user_id]) %>
+        <% comment_owner = comment[:eager_loaded_user] %>
         <% entry_owner = get_user(comment[:entry][:user_id]) %>
         <li class="list-group-item comment-from-to">
           <a href="/profile/<%= comment_owner[:account_name] %>"><%= comment_owner[:nick_name] %>さん</a>から
