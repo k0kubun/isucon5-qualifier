@@ -149,7 +149,7 @@ SQL
 
     def friend_ids_for(user_id)
       result = dc.smembers(key_for(user_id))
-      return result.map(&:to_i) if result
+      return result.map(&:to_i) if !result.nil? && !result.empty?
 
       raw = db.query("SELECT one, another FROM relations WHERE one = #{user_id} OR another = #{user_id}").map do |result|
         if result[:one] == user_id
@@ -269,7 +269,8 @@ SQL
     friend_ids = friend_ids_for(session[:user_id])
 
     entries_of_friends = []
-    db.query("SELECT * FROM entries WHERE user_id IN (#{friend_ids.join(',')}) ORDER BY id DESC LIMIT 10").each do |entry|
+    sql = "SELECT * FROM entries WHERE user_id IN (#{friend_ids.join(',')}) ORDER BY id DESC LIMIT 10" # bug
+    db.query(sql).each do |entry|
       entry[:title] = entry[:body].split(/\n/).first
       entries_of_friends << entry
     end
